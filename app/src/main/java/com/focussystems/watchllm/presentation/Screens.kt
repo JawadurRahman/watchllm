@@ -116,11 +116,11 @@ fun InputScreen(
                     )
                 }
                 item {
-                    Button(
-                        onClick = { heard?.let(onSend) },
+                    ChoiceButton(
+                        if (ready) "Send" else "Loading...",
                         enabled = ready,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(if (ready) "Send" else "Loading...") }
+                        onClick = { heard?.let(onSend) },
+                    )
                 }
                 item { ChoiceButton("Retry", onClick = ::listen) }
                 item { ChoiceButton("Cancel", onClick = { heard = null }) }
