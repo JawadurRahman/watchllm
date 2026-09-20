@@ -43,10 +43,6 @@ class MainActivity : ComponentActivity() {
                                 preset = preset,
                                 ready = state.phase == Phase.Ready,
                                 onType = { nav.navigate(Route.type(preset.id)) },
-                                onSample = {
-                                    viewModel.ask(preset, preset.sampleInput)
-                                    nav.navigate(Route.RESULT)
-                                },
                                 onSend = { text ->
                                     viewModel.ask(preset, text)
                                     nav.navigate(Route.RESULT)

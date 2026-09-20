@@ -80,7 +80,6 @@ fun InputScreen(
     preset: Preset,
     ready: Boolean,
     onType: () -> Unit,
-    onSample: () -> Unit,
     onSend: (String) -> Unit,
 ) {
     val listState = rememberTransformingLazyColumnState()
@@ -153,23 +152,6 @@ fun InputScreen(
                             colors = ButtonDefaults.filledTonalButtonColors(),
                         ) { Text("Speak") }
                     }
-                }
-                item { Caption("Sample:") }
-                item {
-                    Text(
-                        text = "\"${preset.sampleInput}\"",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                item {
-                    Button(
-                        onClick = onSample,
-                        enabled = ready,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                    ) { Text("Try sample") }
                 }
             }
         }
