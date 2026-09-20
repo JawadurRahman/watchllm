@@ -102,20 +102,7 @@ fun InputScreen(
     }
 
     val confirming = heard != null
-    ScreenScaffold(
-        scrollState = listState,
-        edgeButton = {
-            if (confirming) {
-                EdgeButton(onClick = { heard?.let(onSend) }, enabled = ready) {
-                    Text(if (ready) "Send" else "Loading...")
-                }
-            } else {
-                EdgeButton(onClick = onType, enabled = ready) {
-                    Text(if (ready) "Type" else "Loading...")
-                }
-            }
-        },
-    ) { padding ->
+    ScreenScaffold(scrollState = listState) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding) {
             item { ListHeader { Text(preset.label) } }
             if (confirming) {
@@ -130,33 +117,31 @@ fun InputScreen(
                 }
                 item {
                     Button(
-                        onClick = ::listen,
+                        onClick = { heard?.let(onSend) },
+                        enabled = ready,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                    ) { Text("Retry") }
+                    ) { Text(if (ready) "Send" else "Loading...") }
                 }
-                item {
-                    Button(
-                        onClick = { heard = null },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                    ) { Text("Cancel") }
-                }
+                item { ChoiceButton("Retry", onClick = ::listen) }
+                item { ChoiceButton("Cancel", onClick = { heard = null }) }
             } else {
                 if (micAvailable) {
-                    item {
-                        Button(
-                            onClick = ::listen,
-                            enabled = ready,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.filledTonalButtonColors(),
-                        ) { Text("Speak") }
-                    }
+                    item { ChoiceButton("Speak", enabled = ready, onClick = ::listen) }
                 }
+                item { ChoiceButton("Type", enabled = ready, onClick = onType) }
             }
         }
     }
 }
+
+/** Same-shaped full-width button so the input choices look identical. */
+@Composable
+private fun ChoiceButton(label: String, onClick: () -> Unit, enabled: Boolean = true) = Button(
+    onClick = onClick,
+    enabled = enabled,
+    modifier = Modifier.fillMaxWidth(),
+    colors = ButtonDefaults.filledTonalButtonColors(),
+) { Text(label, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
 
 @Composable
 private fun Caption(text: String) = Text(
