@@ -1,6 +1,8 @@
 package com.focussystems.watchllm.presentation
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -8,6 +10,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
@@ -82,9 +85,13 @@ fun ResultScreen(state: UiState, onStop: () -> Unit, onLeave: () -> Unit, onDone
     DisposableEffect(Unit) { onDispose { view.keepScreenOn = false; onLeave() } }
 
     val listState = rememberTransformingLazyColumnState()
-    // Follow the streaming text: item 0 is the reply, item 1 the t/s footer.
+    // Follow the streaming text: item 0 is a top spacer, 1 the reply, 2 the t/s footer.
     LaunchedEffect(state.reply.length, generating) {
-        if (generating) listState.scrollToItem(1)
+        if (generating) listState.scrollToItem(2)
+    }
+    // When the reply is done, go back to its beginning so it can be read from the top.
+    LaunchedEffect(generating) {
+        if (!generating) listState.scrollToItem(0)
     }
     ScreenScaffold(
         scrollState = listState,
@@ -99,6 +106,8 @@ fun ResultScreen(state: UiState, onStop: () -> Unit, onLeave: () -> Unit, onDone
         },
     ) { padding ->
         TransformingLazyColumn(contentPadding = padding, state = listState) {
+            // Keeps the first line out of the narrow, clipped top of the round screen.
+            item { Spacer(Modifier.height(24.dp)) }
             item {
                 Text(
                     text = state.error ?: state.reply.ifEmpty { "…" },
