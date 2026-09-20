@@ -17,6 +17,13 @@ data class Preset(
 
 val PRESETS: List<Preset> = listOf(
     Preset(
+        id = "free",
+        label = "Ask anything",
+        systemPrompt = LlmConfig.SYSTEM_PROMPT,
+        promptTemplate = "{input}",
+        sampleInput = "Why is the sky blue?",
+    ),
+    Preset(
         id = "fact",
         label = "Quick fact",
         systemPrompt = "You share one interesting, accurate fact. Reply in 1-2 short sentences.",
