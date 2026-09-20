@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.focussystems.watchllm.llm.GenerationStats
 import com.focussystems.watchllm.llm.LlamaEngine
+import android.os.SystemClock
 import com.focussystems.watchllm.llm.LlmConfig
+import com.focussystems.watchllm.llm.Preset
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,14 +40,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun ask(prompt: String, system: String = LlmConfig.SYSTEM_PROMPT) {
+    // Text arrives per token on the worker thread; pushing every token to Compose steals CPU from
+    // the generation threads, so chunks are buffered and flushed to the UI every UI_FLUSH_MS.
+    private val pending = StringBuilder()
+    private var lastFlush = 0L
+
+    private fun flush() {
+        if (pending.isEmpty()) return
+        val text = pending.toString()
+        pending.setLength(0)
+        _state.update { it.copy(reply = it.reply + text) }
+    }
+
+    fun ask(preset: Preset, input: String) {
         if (_state.value.phase != Phase.Ready) return
         _state.value = UiState(phase = Phase.Generating)
+        pending.setLength(0)
+        lastFlush = SystemClock.uptimeMillis()
         engine.generate(
-            system = system,
-            user = prompt,
-            onText = { chunk -> _state.update { it.copy(reply = it.reply + chunk) } },
+            system = preset.systemPrompt,
+            user = preset.buildPrompt(input),
+            onText = { chunk ->
+                pending.append(chunk)
+                val now = SystemClock.uptimeMillis()
+                if (now - lastFlush >= UI_FLUSH_MS) { flush(); lastFlush = now }
+            },
             onFinished = { stats ->
+                flush()
                 _state.update {
                     if (stats == null) it.copy(phase = Phase.Error, error = "Generation failed")
                     else it.copy(phase = Phase.Ready, stats = stats)
@@ -55,6 +76,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stop() = engine.cancel()
+
+    private companion object { const val UI_FLUSH_MS = 150L }
 
     override fun onCleared() = engine.release()
 }
