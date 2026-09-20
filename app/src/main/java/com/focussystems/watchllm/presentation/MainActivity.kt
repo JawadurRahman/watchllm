@@ -1,6 +1,7 @@
 package com.focussystems.watchllm.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
 
     // Generation only runs while the app is in the foreground.
     override fun onStop() {
+        Log.i("WatchLlm", "onStop: app left foreground, cancelling generation")
         viewModel.stop()
         super.onStop()
     }

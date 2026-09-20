@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.focussystems.watchllm.llm.GenerationStats
 import com.focussystems.watchllm.llm.LlamaEngine
 import android.os.SystemClock
+import android.util.Log
 import com.focussystems.watchllm.llm.LlmConfig
 import com.focussystems.watchllm.llm.Preset
 import java.io.File
@@ -67,6 +68,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             },
             onFinished = { stats ->
                 flush()
+                Log.i("WatchLlm", "generation finished: ${stats?.generatedTokens} tokens")
                 _state.update {
                     // The model is still loaded, so a failed reply is recoverable: back to Ready.
                     if (stats == null) it.copy(phase = Phase.Ready, error = "Generation failed. Try again.")
