@@ -16,8 +16,10 @@ import com.focussystems.watchllm.presentation.theme.WatchllmTheme
 private object Route {
     const val PRESETS = "presets"
     const val INPUT = "input/{id}"
+    const val TYPE = "type/{id}"
     const val RESULT = "result"
     fun input(id: String) = "input/$id"
+    fun type(id: String) = "type/$id"
 }
 
 class MainActivity : ComponentActivity() {
@@ -40,11 +42,21 @@ class MainActivity : ComponentActivity() {
                             else InputScreen(
                                 preset = preset,
                                 ready = state.phase == Phase.Ready,
-                                onSend = { text ->
-                                    viewModel.ask(preset, text)
+                                onType = { nav.navigate(Route.type(preset.id)) },
+                                onSample = {
+                                    viewModel.ask(preset, preset.sampleInput)
                                     nav.navigate(Route.RESULT)
                                 },
                             )
+                        }
+                        composable(Route.TYPE) { entry ->
+                            val preset = presetById(entry.arguments?.getString("id"))
+                            if (preset == null) nav.popBackStack()
+                            else TypeScreen(preset = preset, onSend = { text ->
+                                viewModel.ask(preset, text)
+                                // Result replaces the typing screen so Back returns to the input step.
+                                nav.navigate(Route.RESULT) { popUpTo(Route.TYPE) { inclusive = true } }
+                            })
                         }
                         composable(Route.RESULT) {
                             ResultScreen(
