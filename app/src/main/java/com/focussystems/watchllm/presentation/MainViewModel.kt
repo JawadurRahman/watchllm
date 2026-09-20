@@ -68,7 +68,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             onFinished = { stats ->
                 flush()
                 _state.update {
-                    if (stats == null) it.copy(phase = Phase.Error, error = "Generation failed")
+                    // The model is still loaded, so a failed reply is recoverable: back to Ready.
+                    if (stats == null) it.copy(phase = Phase.Ready, error = "Generation failed. Try again.")
                     else it.copy(phase = Phase.Ready, stats = stats)
                 }
             },
