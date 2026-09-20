@@ -72,4 +72,3 @@ adb shell rm /data/local/tmp/model.gguf
   the watch.
 - The build targets `armeabi-v7a` only. Adding other ABIs means extending `abiFilters` and the CMake
   arguments in `app/build.gradle.kts`.
-- Wireless debugging can drop when the watch sleeps off the charger. Reconnect with `adb connect`.
