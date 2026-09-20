@@ -77,6 +77,23 @@ fun InputScreen(preset: Preset, ready: Boolean, onType: () -> Unit, onSample: ()
         TransformingLazyColumn(state = listState, contentPadding = padding) {
             item { ListHeader { Text(preset.label) } }
             item {
+                Text(
+                    text = "Sample:",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            item {
+                Text(
+                    text = "\"${preset.sampleInput}\"",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            item {
                 Button(
                     onClick = onSample,
                     enabled = ready,
