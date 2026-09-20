@@ -47,6 +47,10 @@ class MainActivity : ComponentActivity() {
                                     viewModel.ask(preset, preset.sampleInput)
                                     nav.navigate(Route.RESULT)
                                 },
+                                onSend = { text ->
+                                    viewModel.ask(preset, text)
+                                    nav.navigate(Route.RESULT)
+                                },
                             )
                         }
                         composable(Route.TYPE) { entry ->

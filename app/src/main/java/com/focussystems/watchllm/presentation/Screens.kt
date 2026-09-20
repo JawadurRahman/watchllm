@@ -1,6 +1,16 @@
 package com.focussystems.watchllm.presentation
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,47 +72,139 @@ fun PresetsScreen(onPreset: (Preset) -> Unit) {
 }
 
 /**
- * Input step for a preset: choose how to enter the prompt. Keyboard opens [TypeScreen]; voice
- * (step 3) will plug in here too.
+ * Input step for a preset: choose how to enter the prompt. Keyboard opens [TypeScreen]; voice runs
+ * the system speech recognizer and shows what it heard for confirmation before anything is sent.
  */
 @Composable
-fun InputScreen(preset: Preset, ready: Boolean, onType: () -> Unit, onSample: () -> Unit) {
+fun InputScreen(
+    preset: Preset,
+    ready: Boolean,
+    onType: () -> Unit,
+    onSample: () -> Unit,
+    onSend: (String) -> Unit,
+) {
     val listState = rememberTransformingLazyColumnState()
+    val context = LocalContext.current
+    val speech = remember { speechIntent(preset.label) }
+    val micAvailable = remember { isSpeechAvailable(context, speech) }
+    var heard by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val text = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        Log.i(TAG, "speech result: code=${result.resultCode} text=$text")
+        if (!text.isNullOrBlank()) heard = text
+    }
+    fun listen() {
+        try {
+            launcher.launch(speech)
+        } catch (e: ActivityNotFoundException) {
+            Log.e(TAG, "speech recognizer could not be started", e)
+        }
+    }
+
+    val confirming = heard != null
     ScreenScaffold(
         scrollState = listState,
         edgeButton = {
-            EdgeButton(onClick = onType, enabled = ready) { Text(if (ready) "Type" else "Loading…") }
+            if (confirming) {
+                EdgeButton(onClick = { heard?.let(onSend) }, enabled = ready) {
+                    Text(if (ready) "Send" else "Loading...")
+                }
+            } else {
+                EdgeButton(onClick = onType, enabled = ready) {
+                    Text(if (ready) "Type" else "Loading...")
+                }
+            }
         },
     ) { padding ->
         TransformingLazyColumn(state = listState, contentPadding = padding) {
             item { ListHeader { Text(preset.label) } }
-            item {
-                Text(
-                    text = "Sample:",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
-                Text(
-                    text = "\"${preset.sampleInput}\"",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            item {
-                Button(
-                    onClick = onSample,
-                    enabled = ready,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.filledTonalButtonColors(),
-                ) { Text("Try sample") }
+            if (confirming) {
+                item { Caption("Heard:") }
+                item {
+                    Text(
+                        text = "\"$heard\"",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                item {
+                    Button(
+                        onClick = ::listen,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.filledTonalButtonColors(),
+                    ) { Text("Retry") }
+                }
+                item {
+                    Button(
+                        onClick = { heard = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.filledTonalButtonColors(),
+                    ) { Text("Cancel") }
+                }
+            } else {
+                if (micAvailable) {
+                    item {
+                        Button(
+                            onClick = ::listen,
+                            enabled = ready,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.filledTonalButtonColors(),
+                        ) { Text("Speak") }
+                    }
+                }
+                item { Caption("Sample:") }
+                item {
+                    Text(
+                        text = "\"${preset.sampleInput}\"",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                item {
+                    Button(
+                        onClick = onSample,
+                        enabled = ready,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.filledTonalButtonColors(),
+                    ) { Text("Try sample") }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun Caption(text: String) = Text(
+    text = text,
+    modifier = Modifier.fillMaxWidth(),
+    textAlign = TextAlign.Center,
+    style = MaterialTheme.typography.labelSmall,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+)
+
+private const val TAG = "WatchLlm"
+
+private fun speechIntent(prompt: String) = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+    putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
+    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+}
+
+/** The mic button is only shown if something can actually handle speech; logs why if not. */
+private fun isSpeechAvailable(context: Context, speech: Intent): Boolean {
+    if (speech.resolveActivity(context.packageManager) == null) {
+        Log.w(TAG, "Mic hidden: no activity handles RecognizerIntent.ACTION_RECOGNIZE_SPEECH")
+        return false
+    }
+    if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+        Log.w(TAG, "Mic hidden: SpeechRecognizer.isRecognitionAvailable() is false (no RecognitionService)")
+        return false
+    }
+    Log.i(TAG, "Speech recognizer available")
+    return true
 }
 
 /** Text entry with the watch's system keyboard. Sends on the keyboard's Send action or the button. */
@@ -142,7 +244,7 @@ fun TypeScreen(preset: Preset, onSend: (String) -> Unit) {
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             if (text.isEmpty()) {
                                 Text(
-                                    "Type here…",
+                                    "Type here...",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

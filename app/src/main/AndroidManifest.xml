@@ -5,6 +5,16 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
+    <!-- Package visibility (API 30+) so we can check that a speech recognizer exists. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
