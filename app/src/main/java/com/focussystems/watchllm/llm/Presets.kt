@@ -33,12 +33,6 @@ val PRESETS: List<Preset> = listOf(
         promptTemplate = "Explain simply: {input}",
     ),
     Preset(
-        id = "summarize",
-        label = "Summarize",
-        systemPrompt = "You summarize text. Reply with a summary of 1-2 sentences and nothing else.",
-        promptTemplate = "Summarize this:\n{input}",
-    ),
-    Preset(
         id = "shorter",
         label = "Rewrite shorter",
         systemPrompt = "You rewrite text to be shorter while keeping its meaning. Reply with only the rewritten text.",
